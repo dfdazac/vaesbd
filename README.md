@@ -1,6 +1,6 @@
 # VAE-SBD
 
-Variational Autoencoder with Spatial Broadcast Decoder
+PyTorch implementation of the [Variational Autoencoder with Spatial Broadcast Decoder](https://arxiv.org/abs/1901.07017).
 
 **Instructions**
 
