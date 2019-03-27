@@ -19,8 +19,9 @@ class VAE(nn.Module):
                           for i in range(3)])
         self.enc_convs = nn.ModuleList(enc_convs)
 
-        self.fc = nn.ModuleList([nn.Linear(in_features=1024, out_features=256),
-                                 nn.Linear(in_features=256, out_features=20)])
+        self.fc = nn.Sequential(nn.Linear(in_features=1024, out_features=256),
+                                nn.ReLU(),
+                                nn.Linear(in_features=256, out_features=20))
 
         if decoder == 'deconv':
             self.dec_linear = nn.Linear(in_features=10, out_features=256)
@@ -58,8 +59,7 @@ class VAE(nn.Module):
             x = F.relu(module(x))
 
         x = x.view(batch_size, -1)
-        for module in self.fc:
-            x = F.relu(module(x))
+        x = self.fc(x)
 
         return torch.chunk(x, 2, dim=1)
 
