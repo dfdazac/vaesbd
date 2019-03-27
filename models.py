@@ -28,11 +28,11 @@ class VAE(nn.Module):
             dec_convs = [nn.ConvTranspose2d(in_channels=64, out_channels=64,
                                             kernel_size=4, stride=2, padding=1)
                          for i in range(4)]
-            dec_convs.append(nn.ConvTranspose2d(in_channels=64, out_channels=3,
-                                                kernel_size=4, stride=2,
-                                                padding=1))
             self.dec_convs = nn.ModuleList(dec_convs)
             self.decoder = self.deconv_decoder
+            self.last_conv = nn.ConvTranspose2d(in_channels=64, out_channels=3,
+                                                kernel_size=4, stride=2,
+                                                padding=1)
 
         elif decoder == 'sbd':
             # Coordinates for the broadcast decoder
@@ -47,11 +47,11 @@ class VAE(nn.Module):
             dec_convs = [nn.Conv2d(in_channels=12, out_channels=64,
                                    kernel_size=3, padding=1),
                          nn.Conv2d(in_channels=64, out_channels=64,
-                                   kernel_size=3, padding=1),
-                         nn.Conv2d(in_channels=64, out_channels=3,
                                    kernel_size=3, padding=1)]
             self.dec_convs = nn.ModuleList(dec_convs)
             self.decoder = self.sb_decoder
+            self.last_conv = nn.Conv2d(in_channels=64, out_channels=3,
+                                       kernel_size=3, padding=1)
 
     def encoder(self, x):
         batch_size = x.size(0)
@@ -67,6 +67,7 @@ class VAE(nn.Module):
         x = F.relu(self.dec_linear(z)).view(-1, 64, 2, 2)
         for module in self.dec_convs:
             x = F.relu(module(x))
+        x = self.last_conv(x)
 
         return x
 
@@ -92,6 +93,7 @@ class VAE(nn.Module):
 
         for module in self.dec_convs:
             x = F.relu(module(x))
+        x = self.last_conv(x)
 
         return x
 
