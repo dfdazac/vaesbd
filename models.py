@@ -98,11 +98,13 @@ class VAE(nn.Module):
         return x
 
     def forward(self, x):
+        batch_size = x.size(0)
         mu, logvar = self.encoder(x)
         z = self.sample(mu, logvar)
         x_rec = self.decoder(z)
 
         kl = -0.5 * (1 + logvar - mu.pow(2) - logvar.exp()).sum(dim=-1).mean()
-        mse_loss = F.mse_loss(x_rec, x)/0.02
+        mse_loss = F.mse_loss(x_rec, x, reduction='none').view(batch_size, -1)
+        mse_loss = 10 * mse_loss.sum(dim=-1).mean()
 
         return mse_loss, kl, x_rec

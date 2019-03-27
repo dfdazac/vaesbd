@@ -30,7 +30,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
 steps = 0
 log = '[{:d}/{:d}] MSE: {:.6f}  KL: {:.6f}  Total: {:.6f}'
-for epoch in range(1000):
+for epoch in range(100):
     print('Epoch {:d}'.format(epoch + 1))
     train_loss = 0
     train_mse = 0
