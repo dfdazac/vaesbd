@@ -10,77 +10,70 @@ class VAE(nn.Module):
         - Input: :math:`(N, C_{in}, H_{in}, W_{in})`
         - Output: :math:`(N, C_{in}, H_{in}, W_{in})`
     """
-    def __init__(self, im_size, decoder='deconv'):
+    def __init__(self, im_size, decoder='sbd'):
         super(VAE, self).__init__()
-        enc_convs = [nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3,
-                           stride=2),
-                 nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3,
-                           stride=2),
-                 nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3,
-                           stride=2)]
+        enc_convs = [nn.Conv2d(in_channels=3, out_channels=64,
+                               kernel_size=4, stride=2, padding=1)]
+        enc_convs.extend([nn.Conv2d(in_channels=64, out_channels=64,
+                                    kernel_size=4, stride=2, padding=1)
+                          for i in range(3)])
         self.enc_convs = nn.ModuleList(enc_convs)
 
-        mlp = [nn.Linear(in_features=3136, out_features=256),
-               nn.Linear(in_features=256, out_features=32)]
-        self.mlp = nn.ModuleList(mlp)
+        self.fc = nn.ModuleList([nn.Linear(in_features=1024, out_features=256),
+                                 nn.Linear(in_features=256, out_features=20)])
 
-        if decoder == 'sbd':
+        if decoder == 'deconv':
+            self.dec_linear = nn.Linear(in_features=10, out_features=256)
+            dec_convs = [nn.ConvTranspose2d(in_channels=64, out_channels=64,
+                                            kernel_size=4, stride=2, padding=1)
+                         for i in range(4)]
+            dec_convs.append(nn.ConvTranspose2d(in_channels=64, out_channels=3,
+                                                kernel_size=4, stride=2,
+                                                padding=1))
+            self.dec_convs = nn.ModuleList(dec_convs)
+            self.decoder = self.deconv_decoder
+
+        elif decoder == 'sbd':
             # Coordinates for the broadcast decoder
             self.im_size = im_size
             x = torch.linspace(-1, 1, im_size)
-            y = torch.clone(x)
+            y = torch.linspace(-1, 1, im_size)
             x_grid, y_grid = torch.meshgrid(x, y)
             # Add as constant, with extra dims for N and C
             self.register_buffer('x_grid', x_grid.view((1, 1) + x_grid.shape))
             self.register_buffer('y_grid', y_grid.view((1, 1) + y_grid.shape))
 
-            dec_convs = [nn.Conv2d(in_channels=18, out_channels=32, kernel_size=3,
-                                   padding=1),
-                         nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3,
-                                   padding=1),
-                         nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3,
-                                   padding=1)]
+            dec_convs = [nn.Conv2d(in_channels=12, out_channels=64,
+                                   kernel_size=3, padding=1),
+                         nn.Conv2d(in_channels=64, out_channels=64,
+                                   kernel_size=3, padding=1),
+                         nn.Conv2d(in_channels=64, out_channels=3,
+                                   kernel_size=3, padding=1)]
             self.dec_convs = nn.ModuleList(dec_convs)
-            self.last_conv = nn.Conv2d(in_channels=32, out_channels=3,
-                                       kernel_size=1)
-
             self.decoder = self.sb_decoder
-        elif decoder == 'deconv':
-            self.dec_linear = nn.Linear(in_features=16, out_features=256)
-            dec_convs = [nn.ConvTranspose2d(in_channels=64, out_channels=64,
-                                            kernel_size=4, stride=2, padding=1)
-                         for i in range(4)]
-            self.dec_convs = nn.ModuleList(dec_convs)
-            self.decoder = self.deconv_decoder
-            self.last_conv = nn.ConvTranspose2d(in_channels=64, out_channels=3,
-                                                kernel_size=4, stride=2,
-                                                padding=1)
 
     def encoder(self, x):
         batch_size = x.size(0)
         for module in self.enc_convs:
-            x = module(x)
-            x = F.relu(x)
+            x = F.relu(module(x))
 
         x = x.view(batch_size, -1)
-        for module in self.mlp:
-            x = module(x)
-            x = F.relu(x)
+        for module in self.fc:
+            x = F.relu(module(x))
 
         return torch.chunk(x, 2, dim=1)
+
+    def deconv_decoder(self, z):
+        x = F.relu(self.dec_linear(z)).view(-1, 64, 2, 2)
+        for module in self.dec_convs:
+            x = F.relu(module(x))
+
+        return x
 
     def sample(self, mu, logvar):
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
         return mu + eps * std
-
-    def deconv_decoder(self, z):
-        x = self.dec_linear(z).view(-1, 64, 2, 2)
-        for module in self.dec_convs:
-            x = F.relu(module(x))
-        x = self.last_conv(x)
-
-        return x
 
     def sb_decoder(self, z):
         batch_size = z.size(0)
@@ -98,9 +91,7 @@ class VAE(nn.Module):
                        self.y_grid.expand(batch_size, -1, -1, -1), z), dim=1)
 
         for module in self.dec_convs:
-            x = module(x)
-            x = F.relu(x)
-        x = self.last_conv(x)
+            x = F.relu(module(x))
 
         return x
 
