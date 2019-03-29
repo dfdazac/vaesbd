@@ -3,7 +3,7 @@ import os.path as osp
 import numpy as np
 import torch
 
-BG_COLOR = (180, 180, 150)
+BG_COLOR = (255, 255, 255)
 COLORS = [(0, 0, 210),
           (0, 210, 0),
           (210, 0, 0),
@@ -11,7 +11,7 @@ COLORS = [(0, 0, 210),
           (150, 0, 150),
           (0, 150, 150)]
 
-SHAPES = ['ellipse']#, 'rectangle', 'polygon']
+SHAPES = ['ellipse', 'rectangle', 'polygon']
 num_shapes = len(SHAPES)
 
 def generate_img(img_size):
