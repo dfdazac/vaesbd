@@ -1,30 +1,19 @@
 import torch
 from torch.utils.data import TensorDataset, DataLoader
-from torchvision.utils import make_grid
-import matplotlib.pyplot as plt
 from tensorboardX import SummaryWriter
 
 from models import VAE
-
-def plot_examples(examples, name):
-    min_val = torch.min(examples)
-    max_val = torch.max(examples) - min_val
-    scaled = (examples - min_val)/max_val
-    image = make_grid(scaled)
-    plt.cla()
-    plt.suptitle(examples.shape)
-    plt.imshow(image.permute(1, 2, 0).numpy())
-    plt.savefig(name)
+from utils import plot_examples
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 train_file = 'data/train.pt'
-
 dataset = TensorDataset(torch.load(train_file))
 loader = DataLoader(dataset, batch_size=16, shuffle=True)
 writer = SummaryWriter()
 
-model = VAE(im_size=64)
+decoder = 'sbd'
+model = VAE(im_size=64, decoder=decoder)
 model.to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
@@ -63,5 +52,7 @@ for epoch in range(100):
     for name, param in model.enc_convs.named_parameters():
         writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch)
 
-    plot_examples(batch.cpu(), 'original')
-    plot_examples(out.cpu().detach(), 'reconstruction')
+    plot_examples(batch.cpu(), 'original', save=True)
+    plot_examples(out.cpu().detach(), 'reconstruction', save=True)
+
+torch.save(model.state_dict(), f'vae_{decoder}.pt')
