@@ -1,15 +1,15 @@
 import torch
 from torchvision.utils import make_grid
-import matplotlib.pyplot as plt
+import matplotlib.backends.backend_agg as backend
+from matplotlib.figure import Figure
 
 
-def plot_examples(examples, name, save=False):
-    min_val = torch.min(examples)
-    max_val = torch.max(examples) - min_val
-    scaled = (examples - min_val)/max_val
-    image = make_grid(scaled)
-    fig, ax = plt.subplots()
-    fig.suptitle(name)
+def plot_examples(examples, name):
+    clipped = torch.clamp(examples.detach(), 0, 1)
+    image = make_grid(clipped)
+    fig = Figure()
+    canvas = backend.FigureCanvasAgg(fig)
+    ax = fig.subplots()
+    ax.set_title(name)
     ax.imshow(image.permute(1, 2, 0).numpy())
-    if save:
-        fig.savefig(name)
+    canvas.print_figure(name)
