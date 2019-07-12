@@ -118,4 +118,4 @@ dmypy.json
 .idea/
 runs/
 
-data/*.pt
+*.pt

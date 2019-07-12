@@ -3,8 +3,8 @@
 PyTorch implementation of the [Variational Autoencoder with Spatial Broadcast Decoder](https://arxiv.org/abs/1901.07017).
 
 <div align="center">
-<img src='original.png'></br></br>
-<img src='reconstructions.png'></br></br>
+<img src='img/original.png'></br></br>
+<img src='img/reconstructions.png'></br></br>
 </div>
 
 ## Instructions

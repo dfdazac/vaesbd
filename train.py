@@ -1,9 +1,22 @@
 import torch
 from torch.utils.data import TensorDataset, DataLoader
 from tensorboardX import SummaryWriter
+import matplotlib.backends.backend_agg as backend
+from matplotlib.figure import Figure
 
-from models import VAE
-from utils import plot_examples
+from model import VAE
+
+
+def plot_examples(examples, name):
+    clipped = torch.clamp(examples.detach(), 0, 1)
+    image = make_grid(clipped)
+    fig = Figure()
+    canvas = backend.FigureCanvasAgg(fig)
+    ax = fig.subplots()
+    ax.set_title(name)
+    ax.imshow(image.permute(1, 2, 0).numpy())
+    canvas.print_figure(name)
+
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
